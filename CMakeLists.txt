@@ -17,6 +17,7 @@ set(third_party_find_package_list
 set(ros_find_package_list
   rclcpp
   std_msgs
+  ck_ros2_base_msgs_node
 )
 
 set(link_libraries

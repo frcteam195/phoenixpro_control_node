@@ -7,6 +7,8 @@
 #include <string>
 #include <iostream>
 #include "std_msgs/msg/string.hpp"
+#include "ck_ros2_base_msgs_node/msg/motor_status.hpp"
+#include "ck_ros2_base_msgs_node/msg/motor_status_array.hpp"
 
 #define NODE_NAME "phoenixpro_control_node"
 static constexpr char CAN_NAME[] = "jetsoncanivore1";
@@ -19,14 +21,14 @@ class LocalNode : public rclcpp::Node
 public:
     LocalNode() : rclcpp::Node(NODE_NAME)
     {
-        status_publisher = this->create_publisher<std_msgs::msg::String>("/MotorStatus", 10);
+        status_publisher = this->create_publisher<ck_ros2_base_msgs_node::msg::MotorStatusArray>("/MotorStatus", 10);
         control_subscriber = this->create_subscription<std_msgs::msg::String>("/MotorControl", 1, std::bind(&LocalNode::control_msg_callback, this, _1));
     }
 private:
     hardware::TalonFX leftMaster{1, CAN_NAME};
     hardware::TalonFX rightMaster{2, CAN_NAME};
 
-    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_publisher;
+    rclcpp::Publisher<ck_ros2_base_msgs_node::msg::MotorStatusArray>::SharedPtr status_publisher;
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr control_subscriber;
 
     void control_msg_callback(const std_msgs::msg::String::SharedPtr msg)
