@@ -6,27 +6,50 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# find dependencies
-find_package(ament_cmake REQUIRED)
-find_package(phoenix-pro REQUIRED)
-find_package(Threads REQUIRED)
-find_package(rclcpp REQUIRED)
 
-# add_definitions(-DUNIT_LIB_DISABLE_FMT -DUNIT_LIB_ENABLE_IOSTREAM)
+
+set(third_party_find_package_list
+  ament_cmake
+  phoenix-pro
+  Threads
+)
+
+set(ros_find_package_list
+  rclcpp
+  std_msgs
+)
+
+set(link_libraries
+  phoenix-pro
+  Threads::Threads
+)
+
+
 
 file(GLOB_RECURSE executable_sources CONFIGURE_DEPENDS
      "${PROJECT_SOURCE_DIR}/src/*.cpp"
 )
 
+foreach(tdependency ${third_party_find_package_list})
+  find_package(${tdependency} REQUIRED)
+endforeach()
+
+foreach(rdependency ${ros_find_package_list})
+  find_package(${rdependency} REQUIRED)
+endforeach()
+
 add_executable(${PROJECT_NAME} ${executable_sources})
+
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
-#
+  $<INSTALL_INTERFACE:include>
+)
 
-ament_target_dependencies(${PROJECT_NAME} rclcpp)
+foreach(rtdependency ${ros_find_package_list})
+  ament_target_dependencies(${PROJECT_NAME} ${rtdependency})
+endforeach()
 
-target_link_libraries(${PROJECT_NAME} phoenix-pro Threads::Threads)
+target_link_libraries(${PROJECT_NAME} ${link_libraries})
 
 target_compile_features(${PROJECT_NAME} PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 
