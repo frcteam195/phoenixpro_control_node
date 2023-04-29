@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <string>
 #include <iostream>
+#include <vector>
 #include "std_msgs/msg/string.hpp"
 #include "ck_ros2_base_msgs_node/msg/motor_status.hpp"
 #include "ck_ros2_base_msgs_node/msg/motor_status_array.hpp"
@@ -14,15 +15,16 @@
 static constexpr char CAN_NAME[] = "jetsoncanivore1";
 
 using namespace ctre::phoenixpro;
-using std::placeholders::_1;
 
 class LocalNode : public rclcpp::Node
 {
 public:
     LocalNode() : rclcpp::Node(NODE_NAME)
     {
+        params = this->get_parameters(param_names);
+
         status_publisher = this->create_publisher<ck_ros2_base_msgs_node::msg::MotorStatusArray>("/MotorStatus", 10);
-        control_subscriber = this->create_subscription<std_msgs::msg::String>("/MotorControl", 1, std::bind(&LocalNode::control_msg_callback, this, _1));
+        control_subscriber = this->create_subscription<std_msgs::msg::String>("/MotorControl", 1, std::bind(&LocalNode::control_msg_callback, this, std::placeholders::_1));
     }
 private:
     hardware::TalonFX leftMaster{1, CAN_NAME};
@@ -30,6 +32,13 @@ private:
 
     rclcpp::Publisher<ck_ros2_base_msgs_node::msg::MotorStatusArray>::SharedPtr status_publisher;
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr control_subscriber;
+
+    std::vector<std::string> param_names = {
+        "my_str",
+        "my_int",
+        "my_double_array"
+    };
+    std::vector<rclcpp::Parameter> params;
 
     void control_msg_callback(const std_msgs::msg::String::SharedPtr msg)
     {
