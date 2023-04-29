@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
-project(phoenixpro_control_node)
+set(PROJECT_NAME "phoenixpro_control_node")
+project(${PROJECT_NAME})
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -7,17 +8,29 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
+find_package(phoenix-pro REQUIRED)
+find_package(Threads REQUIRED)
+find_package(rclcpp REQUIRED)
 
-add_executable(phoenixpro_control_node src/phoenixpro_control_node.cpp)
-target_include_directories(phoenixpro_control_node PUBLIC
+# add_definitions(-DUNIT_LIB_DISABLE_FMT -DUNIT_LIB_ENABLE_IOSTREAM)
+
+file(GLOB_RECURSE executable_sources CONFIGURE_DEPENDS
+     "${PROJECT_SOURCE_DIR}/src/*.cpp"
+)
+
+add_executable(${PROJECT_NAME} ${executable_sources})
+target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-target_compile_features(phoenixpro_control_node PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+#
 
-install(TARGETS phoenixpro_control_node
+ament_target_dependencies(${PROJECT_NAME} rclcpp)
+
+target_link_libraries(${PROJECT_NAME} phoenix-pro Threads::Threads)
+
+target_compile_features(${PROJECT_NAME} PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+
+install(TARGETS ${PROJECT_NAME}
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
