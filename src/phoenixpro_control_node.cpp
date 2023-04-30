@@ -39,9 +39,15 @@ public:
 
         m_pigeon2 = new hardware::Pigeon2(0, params[Parameters::canivore_name].as_string());
         m_combined_pigeon2_status = new CombinedPigeon2Status(m_pigeon2, UPDATE_FREQUENCY);
-
+        create_combined_wait_vector();
+        
         create_motor(1);
         create_motor(2);
+
+        create_cancoder(21);
+        create_cancoder(22);
+        create_cancoder(23);
+        create_cancoder(24);
 
         status_listener_thread = std::thread(std::bind(&LocalNode::status_receiver_thread, this));
     }
@@ -89,6 +95,9 @@ private:
 
     std::map<int, hardware::TalonFX*> motor_map;
     std::map<int, CombinedMotorStatus*> motor_status_map;
+
+    std::map<int, hardware::CANcoder*> cancoder_map;
+    std::map<int, CombinedCANcoderStatus*> cancoder_status_map;
 
     std::recursive_mutex status_mutex;
 
@@ -146,12 +155,67 @@ private:
         create_combined_wait_vector();
     }
 
+    void create_cancoder(int id)
+    {
+        if (!cancoder_map.count(id))
+        {
+            cancoder_map[id] = new hardware::CANcoder(id, params[Parameters::canivore_name].as_string());
+        }
+        {
+            std::scoped_lock<std::recursive_mutex> lock(status_mutex);
+            if (!cancoder_status_map.count(id))
+            {
+                cancoder_status_map[id] = new CombinedCANcoderStatus(cancoder_map[id], UPDATE_FREQUENCY);
+            }
+        }
+
+        create_combined_wait_vector();
+    }
+
+    void delete_cancoder(int id)
+    {
+        {
+            std::scoped_lock<std::recursive_mutex> lock(status_mutex);
+            if (cancoder_status_map.count(id))
+            {
+                CombinedCANcoderStatus* c = cancoder_status_map[id];
+                cancoder_status_map.erase(id);
+                if (c)
+                {
+                    delete c;
+                }
+            }
+        }
+
+        if (cancoder_map.count(id))
+        {
+            hardware::CANcoder* cancoder = cancoder_map[id];
+            cancoder_map.erase(id);
+            if (cancoder)
+            {
+                //TODO: Make sure this doesn't cause horrible issues based on compiler warning
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdelete-non-virtual-dtor"
+                delete cancoder;
+#pragma GCC diagnostic pop
+            }
+        }
+
+        create_combined_wait_vector();
+    }
+
 
     void create_combined_wait_vector()
     {
         std::scoped_lock<std::recursive_mutex> lock(status_mutex);
         combined_status_signal_vector.clear();
         for (auto p : motor_status_map)
+        {
+            const std::vector<BaseStatusSignalValue*>& input_vector = p.second->get_status_signal_vector();
+            combined_status_signal_vector.insert(combined_status_signal_vector.end(), input_vector.begin(), input_vector.end());
+        }
+
+        for (auto p : cancoder_status_map)
         {
             const std::vector<BaseStatusSignalValue*>& input_vector = p.second->get_status_signal_vector();
             combined_status_signal_vector.insert(combined_status_signal_vector.end(), input_vector.begin(), input_vector.end());
