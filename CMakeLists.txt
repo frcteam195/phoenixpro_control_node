@@ -25,10 +25,46 @@ set(link_libraries
   Threads::Threads
 )
 
+add_custom_target(make_gen_inc_folder ALL
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_SOURCE_DIR}/generated/include/${PROJECT_NAME}
+)
+
+add_custom_target(make_gen_src_folder ALL
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_SOURCE_DIR}/generated/src
+)
+
+add_custom_target(
+  generate_jinja_sources ALL
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/generated/include/${PROJECT_NAME}/${PROJECT_NAME}.hpp
+)
+
+add_custom_command(
+  OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/generated/include/${PROJECT_NAME}/${PROJECT_NAME}.hpp
+  COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/template/render_jinja.py --output ${CMAKE_CURRENT_SOURCE_DIR}/generated/include/${PROJECT_NAME}/${PROJECT_NAME}.hpp --template ${CMAKE_CURRENT_SOURCE_DIR}/template/${PROJECT_NAME}.hpp.j2
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/template/render_jinja.py ${CMAKE_CURRENT_SOURCE_DIR}/template/${PROJECT_NAME}.hpp.j2
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  COMMENT "Generating header ${CMAKE_CURRENT_SOURCE_DIR}/generated/include/${PROJECT_NAME}/${PROJECT_NAME}.hpp"
+)
+
+
+# syntax to trick cmake into always running generation
+# add_custom_target(
+#         always_run_target ALL
+#         DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/__header.h
+# )
+
+# add_custom_command(
+#   OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/generated/include/${PROJECT_NAME}/${PROJECT_NAME}.hpp ${CMAKE_CURRENT_BINARY_DIR}/__header.h
+#   COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/template/render_jinja.py --output ${CMAKE_CURRENT_SOURCE_DIR}/generated/include/${PROJECT_NAME}/${PROJECT_NAME}.hpp --template ${CMAKE_CURRENT_SOURCE_DIR}/template/${PROJECT_NAME}.hpp.j2
+#   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/template/render_jinja.py ${CMAKE_CURRENT_SOURCE_DIR}/template/${PROJECT_NAME}.hpp.j2
+#   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+#   COMMENT "Generating header ${CMAKE_CURRENT_SOURCE_DIR}/generated/include/${PROJECT_NAME}/${PROJECT_NAME}.hpp"
+# )
 
 
 file(GLOB_RECURSE executable_sources CONFIGURE_DEPENDS
      "${PROJECT_SOURCE_DIR}/src/*.cpp"
+     "${PROJECT_SOURCE_DIR}/generated/src/*.cpp"
 )
 
 foreach(tdependency ${third_party_find_package_list})
@@ -40,9 +76,11 @@ foreach(rdependency ${ros_find_package_list})
 endforeach()
 
 add_executable(${PROJECT_NAME} ${executable_sources})
-
+add_dependencies(${PROJECT_NAME} generate_jinja_sources make_gen_inc_folder make_gen_src_folder)
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/generated/include>
   $<INSTALL_INTERFACE:include>
 )
 
