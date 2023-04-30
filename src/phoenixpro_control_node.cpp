@@ -17,13 +17,12 @@
 
 using namespace ctre::phoenixpro;
 
-class LocalNode : public rclcpp::Node
+class LocalNode : public ParameterizedNode
 {
 public:
-    LocalNode() : rclcpp::Node(NODE_NAME)
+    LocalNode() : ParameterizedNode(NODE_NAME)
     {
-        load_parameters(this);
-        CAN_NET = ParamMap[Parameters::canivore_name].as_string();
+        CAN_NET = params[Parameters::canivore_name].as_string();
         
         leftMaster = new hardware::TalonFX(1, CAN_NET);
         rightMaster = new hardware::TalonFX(2, CAN_NET);
