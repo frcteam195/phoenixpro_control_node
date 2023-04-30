@@ -35,13 +35,14 @@ add_custom_target(make_gen_src_folder ALL
 
 add_custom_target(
   generate_jinja_sources ALL
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/generated/include/${PROJECT_NAME}/${PROJECT_NAME}.hpp
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/generated/include/${PROJECT_NAME}/parameters.hpp ${CMAKE_CURRENT_SOURCE_DIR}/generated/src/parameters.cpp
 )
 
 add_custom_command(
-  OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/generated/include/${PROJECT_NAME}/${PROJECT_NAME}.hpp
-  COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/template/render_jinja.py --output ${CMAKE_CURRENT_SOURCE_DIR}/generated/include/${PROJECT_NAME}/${PROJECT_NAME}.hpp --template ${CMAKE_CURRENT_SOURCE_DIR}/template/${PROJECT_NAME}.hpp.j2
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/template/render_jinja.py ${CMAKE_CURRENT_SOURCE_DIR}/template/${PROJECT_NAME}.hpp.j2
+  OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/generated/include/${PROJECT_NAME}/parameters.hpp ${CMAKE_CURRENT_SOURCE_DIR}/generated/src/parameters.cpp
+  COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/template/render_jinja.py --header_output ${CMAKE_CURRENT_SOURCE_DIR}/generated/include/${PROJECT_NAME}/parameters.hpp --header_template ${CMAKE_CURRENT_SOURCE_DIR}/template/parameters.hpp.j2
+  --src_output ${CMAKE_CURRENT_SOURCE_DIR}/generated/src/parameters.cpp --src_template ${CMAKE_CURRENT_SOURCE_DIR}/template/parameters.cpp.j2
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/template/render_jinja.py ${CMAKE_CURRENT_SOURCE_DIR}/template/parameters.hpp.j2 ${CMAKE_CURRENT_SOURCE_DIR}/template/parameters.cpp.j2
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   COMMENT "Generating header ${CMAKE_CURRENT_SOURCE_DIR}/generated/include/${PROJECT_NAME}/${PROJECT_NAME}.hpp"
 )
@@ -64,6 +65,9 @@ add_custom_command(
 
 file(GLOB_RECURSE executable_sources CONFIGURE_DEPENDS
      "${PROJECT_SOURCE_DIR}/src/*.cpp"
+)
+
+file(GLOB_RECURSE generated_sources CONFIGURE_DEPENDS
      "${PROJECT_SOURCE_DIR}/generated/src/*.cpp"
 )
 
@@ -75,7 +79,7 @@ foreach(rdependency ${ros_find_package_list})
   find_package(${rdependency} REQUIRED)
 endforeach()
 
-add_executable(${PROJECT_NAME} ${executable_sources})
+add_executable(${PROJECT_NAME} ${executable_sources} ${generated_sources})
 add_dependencies(generate_jinja_sources make_gen_inc_folder make_gen_src_folder)
 add_dependencies(${PROJECT_NAME} generate_jinja_sources)
 target_include_directories(${PROJECT_NAME} PUBLIC

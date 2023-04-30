@@ -4,8 +4,10 @@ import pathlib
 import argparse
 from typing import List
 parser = argparse.ArgumentParser(description='Render script')
-parser.add_argument('--output', action="store", dest='output_file', default="")
-parser.add_argument('--template', action="store", dest='template_file', default="")
+parser.add_argument('--header_output', action="store", dest='header_file', default="")
+parser.add_argument('--header_template', action="store", dest='header_template', default="")
+parser.add_argument('--src_output', action="store", dest='src_file', default="")
+parser.add_argument('--src_template', action="store", dest='src_template', default="")
 args = parser.parse_args()
 
 node_name = pathlib.Path(__file__).parent.parent.name
@@ -40,31 +42,35 @@ type_map = {
     9 : "rclcpp::PARAMETER_STRING_ARRAY",
 }
 
+params = {}
+
+for (k, v) in yaml_obj[node_name]["ros__parameters"].items():
+    if type(v) is list:
+        if all(isinstance(n, bool) for n in v):
+            params[k] = type_map[6]
+        elif all(isinstance(n, int) for n in v):
+            params[k] = type_map[7]
+        elif all(isinstance(n, float) for n in v):
+            params[k] = type_map[8]
+        elif all(isinstance(n, str) for n in v):
+            params[k] = type_map[9]
+        else:
+            params[k] = type_map[None]
+        pass
+    else:
+        params[k] = type_map[type(v)]
+
 
 # # Generate unit test template
 env = jinja2.Environment(loader=jinja2.FileSystemLoader('/'), trim_blocks=True)
-template = env.get_template(args.template_file)
+header_template = env.get_template(args.header_template)
+header_result = header_template.render(params=params, node_name=node_name)
+f = open(args.header_file, "w")
+f.write(header_result)
+f.close()
 
-keys=[]
-values=[]
-for (k, v) in yaml_obj[node_name]["ros__parameters"].items():
-    keys.append(str(k))
-    if type(v) is list:
-        if all(isinstance(n, bool) for n in v):
-            values.append(type_map[6])
-        elif all(isinstance(n, int) for n in v):
-            values.append(type_map[7])
-        elif all(isinstance(n, float) for n in v):
-            values.append(type_map[8])
-        elif all(isinstance(n, str) for n in v):
-            values.append(type_map[9])
-        else:
-            values.append(type_map[None])
-        pass
-    else:
-        values.append(type_map[type(v)])
-
-result = template.render(keys=keys, values=values, node_name=node_name)
-f = open(args.output_file, "w")
-f.write(result)
+src_template = env.get_template(args.src_template)
+src_result = src_template.render(params=params, node_name=node_name)
+f = open(args.src_file, "w")
+f.write(src_result)
 f.close()
