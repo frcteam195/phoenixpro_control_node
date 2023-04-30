@@ -7,6 +7,8 @@
     #define UNIT_LIB_ENABLE_IOSTREAM
 #endif
 #include "ctre/phoenixpro/TalonFX.hpp"
+#include "ctre/phoenixpro/CANcoder.hpp"
+#include "ctre/phoenixpro/Pigeon2.hpp"
 
 #include <mutex>
 

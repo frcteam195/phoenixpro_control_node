@@ -20,6 +20,8 @@
 #include "ctre/phoenixpro/TalonFX.hpp"
 
 #include "phoenixpro_control_node/CombinedMotorStatus.hpp"
+#include "phoenixpro_control_node/CombinedCANcoderStatus.hpp"
+#include "phoenixpro_control_node/CombinedPigeon2Status.hpp"
 
 #define NODE_NAME "phoenixpro_control_node"
 
@@ -32,8 +34,11 @@ class LocalNode : public ParameterizedNode
 public:
     LocalNode() : ParameterizedNode(NODE_NAME)
     {
-        status_publisher = this->create_publisher<ck_ros2_base_msgs_node::msg::MotorStatusArray>("/MotorStatus", 10);
-        control_subscriber = this->create_subscription<std_msgs::msg::String>("/MotorControl", 1, std::bind(&LocalNode::control_msg_callback, this, std::placeholders::_1));
+        motor_status_publisher = this->create_publisher<ck_ros2_base_msgs_node::msg::MotorStatusArray>("/MotorStatus", 10);
+        motor_control_subscriber = this->create_subscription<std_msgs::msg::String>("/MotorControl", 1, std::bind(&LocalNode::control_msg_callback, this, std::placeholders::_1));
+
+        m_pigeon2 = new hardware::Pigeon2(0, params[Parameters::canivore_name].as_string());
+        m_combined_pigeon2_status = new CombinedPigeon2Status(m_pigeon2, UPDATE_FREQUENCY);
 
         create_motor(1);
         create_motor(2);
@@ -41,16 +46,54 @@ public:
         status_listener_thread = std::thread(std::bind(&LocalNode::status_receiver_thread, this));
     }
 
+    ~LocalNode()
+    {
+        for (auto p : motor_map)
+        {
+            if (p.second)
+            {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdelete-non-virtual-dtor"
+                delete p.second;
+#pragma GCC diagnostic pop
+            }
+        }
+
+        for (auto p : motor_status_map)
+        {
+            if (p.second)
+            {
+                delete p.second;
+            }
+        }
+
+        if (m_pigeon2)
+        {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdelete-non-virtual-dtor"
+                delete m_pigeon2;
+#pragma GCC diagnostic pop
+        }
+
+        if (m_combined_pigeon2_status)
+        {
+            delete m_combined_pigeon2_status;
+        }
+    }
+
 private:
     std::thread status_listener_thread;
+
+    hardware::Pigeon2* m_pigeon2;
+    CombinedPigeon2Status* m_combined_pigeon2_status;
 
     std::map<int, hardware::TalonFX*> motor_map;
     std::map<int, CombinedMotorStatus*> motor_status_map;
 
     std::recursive_mutex status_mutex;
 
-    rclcpp::Publisher<ck_ros2_base_msgs_node::msg::MotorStatusArray>::SharedPtr status_publisher;
-    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr control_subscriber;
+    rclcpp::Publisher<ck_ros2_base_msgs_node::msg::MotorStatusArray>::SharedPtr motor_status_publisher;
+    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr motor_control_subscriber;
 
     std::vector<BaseStatusSignalValue*> combined_status_signal_vector;
 
@@ -113,6 +156,12 @@ private:
             const std::vector<BaseStatusSignalValue*>& input_vector = p.second->get_status_signal_vector();
             combined_status_signal_vector.insert(combined_status_signal_vector.end(), input_vector.begin(), input_vector.end());
         }
+
+        if (m_pigeon2 && m_combined_pigeon2_status)
+        {
+            const std::vector<BaseStatusSignalValue*>& pigeon2_input_vector = m_combined_pigeon2_status->get_status_signal_vector();
+            combined_status_signal_vector.insert(combined_status_signal_vector.end(), pigeon2_input_vector.begin(), pigeon2_input_vector.end());
+        }
     }
 
     void control_msg_callback(const std_msgs::msg::String::SharedPtr msg)
@@ -134,21 +183,21 @@ private:
                 for(auto p : motor_status_map)
                 {
                     ck_ros2_base_msgs_node::msg::MotorStatus m;
-                    m.id = p.second->get_status(StatusType::DEVICE_ID);
-                    m.sensor_position = p.second->get_status(StatusType::POSITION);
-                    m.sensor_velocity = p.second->get_status(StatusType::VELOCITY);
-                    m.bus_voltage = p.second->get_status(StatusType::SUPPLY_VOLTAGE);
-                    m.bus_current = p.second->get_status(StatusType::SUPPLY_CURRENT);
-                    m.stator_current = p.second->get_status(StatusType::STATOR_CURRENT);
-                    m.forward_limit_closed = p.second->get_status(StatusType::FORWARD_LIMIT);
-                    m.reverse_limit_closed = p.second->get_status(StatusType::REVERSE_LIMIT);
-                    m.control_mode = p.second->get_status(StatusType::CONTROL_MODE);
-                    m.commanded_output = p.second->get_status(StatusType::CLOSED_LOOP_TARGET);
-                    m.raw_output_percent = p.second->get_status(StatusType::OUTPUT_DUTY_CYCLE);
+                    m.id = p.second->get_status(MotorStatusType::DEVICE_ID);
+                    m.sensor_position = p.second->get_status(MotorStatusType::POSITION);
+                    m.sensor_velocity = p.second->get_status(MotorStatusType::VELOCITY);
+                    m.bus_voltage = p.second->get_status(MotorStatusType::SUPPLY_VOLTAGE);
+                    m.bus_current = p.second->get_status(MotorStatusType::SUPPLY_CURRENT);
+                    m.stator_current = p.second->get_status(MotorStatusType::STATOR_CURRENT);
+                    m.forward_limit_closed = p.second->get_status(MotorStatusType::FORWARD_LIMIT);
+                    m.reverse_limit_closed = p.second->get_status(MotorStatusType::REVERSE_LIMIT);
+                    m.control_mode = p.second->get_status(MotorStatusType::CONTROL_MODE);
+                    m.commanded_output = p.second->get_status(MotorStatusType::CLOSED_LOOP_TARGET);
+                    m.raw_output_percent = p.second->get_status(MotorStatusType::OUTPUT_DUTY_CYCLE);
                     motor_status_msg.motors.push_back(m);
                 }
 
-                status_publisher->publish(motor_status_msg);
+                motor_status_publisher->publish(motor_status_msg);
             }
 
             if (local_combined_status_wait_vector.size() > 0)

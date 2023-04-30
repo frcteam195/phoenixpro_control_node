@@ -4,7 +4,7 @@
 
 using namespace ctre::phoenixpro;
 
-enum class StatusType
+enum class MotorStatusType
 {
     DEVICE_ID,
     POSITION,
@@ -38,85 +38,85 @@ public:
         talon_fx->GetClosedLoopReference().SetUpdateFrequency(update_frequency);
         talon_fx->GetDutyCycle().SetUpdateFrequency(update_frequency);
 
-        status_values[StatusType::POSITION] = &talon_fx->GetPosition();
-        status_values[StatusType::VELOCITY] = &talon_fx->GetVelocity();
-        status_values[StatusType::SUPPLY_VOLTAGE] = &talon_fx->GetSupplyVoltage();
-        status_values[StatusType::SUPPLY_CURRENT] = &talon_fx->GetSupplyCurrent();
-        status_values[StatusType::STATOR_CURRENT] = &talon_fx->GetStatorCurrent();
-        status_values[StatusType::FORWARD_LIMIT] = &talon_fx->GetForwardLimit();
-        status_values[StatusType::REVERSE_LIMIT] = &talon_fx->GetReverseLimit();
-        status_values[StatusType::CONTROL_MODE] = &talon_fx->GetControlMode();
-        status_values[StatusType::CLOSED_LOOP_TARGET] = &talon_fx->GetClosedLoopReference();
-        status_values[StatusType::OUTPUT_DUTY_CYCLE] = &talon_fx->GetDutyCycle();
+        status_values[MotorStatusType::POSITION] = &talon_fx->GetPosition();
+        status_values[MotorStatusType::VELOCITY] = &talon_fx->GetVelocity();
+        status_values[MotorStatusType::SUPPLY_VOLTAGE] = &talon_fx->GetSupplyVoltage();
+        status_values[MotorStatusType::SUPPLY_CURRENT] = &talon_fx->GetSupplyCurrent();
+        status_values[MotorStatusType::STATOR_CURRENT] = &talon_fx->GetStatorCurrent();
+        status_values[MotorStatusType::FORWARD_LIMIT] = &talon_fx->GetForwardLimit();
+        status_values[MotorStatusType::REVERSE_LIMIT] = &talon_fx->GetReverseLimit();
+        status_values[MotorStatusType::CONTROL_MODE] = &talon_fx->GetControlMode();
+        status_values[MotorStatusType::CLOSED_LOOP_TARGET] = &talon_fx->GetClosedLoopReference();
+        status_values[MotorStatusType::OUTPUT_DUTY_CYCLE] = &talon_fx->GetDutyCycle();
 
-        add_status_signal_to_wait_vector(status_values[StatusType::POSITION]);
-        add_status_signal_to_wait_vector(status_values[StatusType::VELOCITY]);
-        add_status_signal_to_wait_vector(status_values[StatusType::SUPPLY_VOLTAGE]);
-        add_status_signal_to_wait_vector(status_values[StatusType::SUPPLY_CURRENT]);
-        add_status_signal_to_wait_vector(status_values[StatusType::STATOR_CURRENT]);
-        add_status_signal_to_wait_vector(status_values[StatusType::FORWARD_LIMIT]);
-        add_status_signal_to_wait_vector(status_values[StatusType::REVERSE_LIMIT]);
-        add_status_signal_to_wait_vector(status_values[StatusType::CONTROL_MODE]);
-        add_status_signal_to_wait_vector(status_values[StatusType::CLOSED_LOOP_TARGET]);
-        add_status_signal_to_wait_vector(status_values[StatusType::OUTPUT_DUTY_CYCLE]);
+        add_status_signal_to_wait_vector(status_values[MotorStatusType::POSITION]);
+        add_status_signal_to_wait_vector(status_values[MotorStatusType::VELOCITY]);
+        add_status_signal_to_wait_vector(status_values[MotorStatusType::SUPPLY_VOLTAGE]);
+        add_status_signal_to_wait_vector(status_values[MotorStatusType::SUPPLY_CURRENT]);
+        add_status_signal_to_wait_vector(status_values[MotorStatusType::STATOR_CURRENT]);
+        add_status_signal_to_wait_vector(status_values[MotorStatusType::FORWARD_LIMIT]);
+        add_status_signal_to_wait_vector(status_values[MotorStatusType::REVERSE_LIMIT]);
+        add_status_signal_to_wait_vector(status_values[MotorStatusType::CONTROL_MODE]);
+        add_status_signal_to_wait_vector(status_values[MotorStatusType::CLOSED_LOOP_TARGET]);
+        add_status_signal_to_wait_vector(status_values[MotorStatusType::OUTPUT_DUTY_CYCLE]);
     }
 
-    double get_status(StatusType status_type)
+    double get_status(MotorStatusType status_type)
     {
         try
         {
             switch (status_type)
             {
-                case StatusType::DEVICE_ID:
+                case MotorStatusType::DEVICE_ID:
                 {
                     return device_id;
                 }
-                case StatusType::POSITION:
+                case MotorStatusType::POSITION:
                 {
                     StatusSignalValue<units::angle::turn_t>* sensor_position = dynamic_cast<StatusSignalValue<units::angle::turn_t>*>(status_values[status_type]);
                     return sensor_position->GetValue().value();
                 }
-                case StatusType::VELOCITY:
+                case MotorStatusType::VELOCITY:
                 {
                     StatusSignalValue<units::angular_velocity::turns_per_second_t>* sensor_velocity = dynamic_cast<StatusSignalValue<units::angular_velocity::turns_per_second_t>*>(status_values[status_type]);
                     return sensor_velocity->GetValue().value();
                 }
-                case StatusType::SUPPLY_VOLTAGE:
+                case MotorStatusType::SUPPLY_VOLTAGE:
                 {
                     StatusSignalValue<units::voltage::volt_t>* supply_voltage = dynamic_cast<StatusSignalValue<units::voltage::volt_t>*>(status_values[status_type]);
                     return supply_voltage->GetValue().value();
                 }
-                case StatusType::SUPPLY_CURRENT:
+                case MotorStatusType::SUPPLY_CURRENT:
                 {
                     StatusSignalValue<units::current::ampere_t>* supply_current = dynamic_cast<StatusSignalValue<units::current::ampere_t>*>(status_values[status_type]);
                     return supply_current->GetValue().value();
                 }
-                case StatusType::STATOR_CURRENT:
+                case MotorStatusType::STATOR_CURRENT:
                 {
                     StatusSignalValue<units::current::ampere_t>* stator_current = dynamic_cast<StatusSignalValue<units::current::ampere_t>*>(status_values[status_type]);
                     return stator_current->GetValue().value();
                 }
-                case StatusType::FORWARD_LIMIT:
+                case MotorStatusType::FORWARD_LIMIT:
                 {
                     StatusSignalValue<signals::ForwardLimitValue>* forward_limit = dynamic_cast<StatusSignalValue<signals::ForwardLimitValue>*>(status_values[status_type]);
                     return forward_limit->GetValue().value == signals::ForwardLimitValue::ClosedToGround ? 1 : 0;
                 }
-                case StatusType::REVERSE_LIMIT:
+                case MotorStatusType::REVERSE_LIMIT:
                 {
                     StatusSignalValue<signals::ReverseLimitValue>* reverse_limit = dynamic_cast<StatusSignalValue<signals::ReverseLimitValue>*>(status_values[status_type]);
                     return reverse_limit->GetValue().value == signals::ReverseLimitValue::ClosedToGround ? 1 : 0;
                 }
-                case StatusType::CONTROL_MODE:
+                case MotorStatusType::CONTROL_MODE:
                 {
                     StatusSignalValue<signals::ControlModeValue>* control_mode = dynamic_cast<StatusSignalValue<signals::ControlModeValue>*>(status_values[status_type]);
                     return (int)(control_mode->GetValue().value);
                 }
-                case StatusType::CLOSED_LOOP_TARGET:
+                case MotorStatusType::CLOSED_LOOP_TARGET:
                 {
                     StatusSignalValue<double>* closed_loop_target = dynamic_cast<StatusSignalValue<double>*>(status_values[status_type]);
                     return closed_loop_target->GetValue();
                 }
-                case StatusType::OUTPUT_DUTY_CYCLE:
+                case MotorStatusType::OUTPUT_DUTY_CYCLE:
                 {
                     StatusSignalValue<units::dimensionless::scalar_t>* output_duty_cycle = dynamic_cast<StatusSignalValue<units::dimensionless::scalar_t>*>(status_values[status_type]);
                     return output_duty_cycle->GetValue().value();
@@ -131,7 +131,7 @@ public:
     }
 
 private:
-    std::map<StatusType, BaseStatusSignalValue*> status_values;
+    std::map<MotorStatusType, BaseStatusSignalValue*> status_values;
 
     int device_id = -1;
     hardware::TalonFX* m_talonfx;
