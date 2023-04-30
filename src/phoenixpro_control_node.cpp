@@ -32,13 +32,13 @@ class LocalNode : public ParameterizedNode
 public:
     LocalNode() : ParameterizedNode(NODE_NAME)
     {
-        status_listener_thread = std::thread(std::bind(&LocalNode::status_receiver_thread, this));
-
         status_publisher = this->create_publisher<ck_ros2_base_msgs_node::msg::MotorStatusArray>("/MotorStatus", 10);
         control_subscriber = this->create_subscription<std_msgs::msg::String>("/MotorControl", 1, std::bind(&LocalNode::control_msg_callback, this, std::placeholders::_1));
 
         create_motor(1);
         create_motor(2);
+
+        status_listener_thread = std::thread(std::bind(&LocalNode::status_receiver_thread, this));
     }
 
 private:
@@ -129,6 +129,26 @@ private:
             {
                 std::scoped_lock<std::recursive_mutex> lock(status_mutex);
                 local_combined_status_wait_vector = combined_status_signal_vector;
+
+                ck_ros2_base_msgs_node::msg::MotorStatusArray motor_status_msg;
+                for(auto p : motor_status_map)
+                {
+                    ck_ros2_base_msgs_node::msg::MotorStatus m;
+                    m.id = p.second->get_status(StatusType::DEVICE_ID);
+                    m.sensor_position = p.second->get_status(StatusType::POSITION);
+                    m.sensor_velocity = p.second->get_status(StatusType::VELOCITY);
+                    m.bus_voltage = p.second->get_status(StatusType::SUPPLY_VOLTAGE);
+                    m.bus_current = p.second->get_status(StatusType::SUPPLY_CURRENT);
+                    m.stator_current = p.second->get_status(StatusType::STATOR_CURRENT);
+                    m.forward_limit_closed = p.second->get_status(StatusType::FORWARD_LIMIT);
+                    m.reverse_limit_closed = p.second->get_status(StatusType::REVERSE_LIMIT);
+                    m.control_mode = p.second->get_status(StatusType::CONTROL_MODE);
+                    m.commanded_output = p.second->get_status(StatusType::CLOSED_LOOP_TARGET);
+                    m.raw_output_percent = p.second->get_status(StatusType::OUTPUT_DUTY_CYCLE);
+                    motor_status_msg.motors.push_back(m);
+                }
+
+                status_publisher->publish(motor_status_msg);
             }
 
             if (local_combined_status_wait_vector.size() > 0)

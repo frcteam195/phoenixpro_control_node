@@ -61,9 +61,6 @@ public:
         add_status_signal_to_wait_vector(status_values[StatusType::OUTPUT_DUTY_CYCLE]);
     }
 
-private:
-    std::map<StatusType, BaseStatusSignalValue*> status_values;
-
     double get_status(StatusType status_type)
     {
         try
@@ -132,6 +129,9 @@ private:
         }
         return 0;
     }
+
+private:
+    std::map<StatusType, BaseStatusSignalValue*> status_values;
 
     int device_id = -1;
     hardware::TalonFX* m_talonfx;
