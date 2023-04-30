@@ -22,10 +22,22 @@ enum class StatusType
 class CombinedMotorStatus : public SynchronizedStatus
 {
 public:
-    CombinedMotorStatus(hardware::TalonFX* talon_fx)
+    CombinedMotorStatus(hardware::TalonFX* talon_fx, units::frequency::hertz_t update_frequency)
     {
         m_talonfx = talon_fx;
         device_id = talon_fx->GetDeviceID();
+
+        talon_fx->GetPosition().SetUpdateFrequency(update_frequency);
+        talon_fx->GetVelocity().SetUpdateFrequency(update_frequency);
+        talon_fx->GetSupplyVoltage().SetUpdateFrequency(update_frequency);
+        talon_fx->GetSupplyCurrent().SetUpdateFrequency(update_frequency);
+        talon_fx->GetStatorCurrent().SetUpdateFrequency(update_frequency);
+        talon_fx->GetForwardLimit().SetUpdateFrequency(update_frequency);
+        talon_fx->GetReverseLimit().SetUpdateFrequency(update_frequency);
+        talon_fx->GetControlMode().SetUpdateFrequency(update_frequency);
+        talon_fx->GetClosedLoopReference().SetUpdateFrequency(update_frequency);
+        talon_fx->GetDutyCycle().SetUpdateFrequency(update_frequency);
+
         status_values[StatusType::POSITION] = &talon_fx->GetPosition();
         status_values[StatusType::VELOCITY] = &talon_fx->GetVelocity();
         status_values[StatusType::SUPPLY_VOLTAGE] = &talon_fx->GetSupplyVoltage();

@@ -25,6 +25,8 @@
 
 using namespace ctre::phoenixpro;
 
+static constexpr units::frequency::hertz_t UPDATE_FREQUENCY = 100_Hz;
+
 class LocalNode : public ParameterizedNode
 {
 public:
@@ -62,7 +64,7 @@ private:
             std::scoped_lock<std::recursive_mutex> lock(status_mutex);
             if (!motor_status_map.count(id))
             {
-                motor_status_map[id] = new CombinedMotorStatus(motor_map[id]);
+                motor_status_map[id] = new CombinedMotorStatus(motor_map[id], UPDATE_FREQUENCY);
             }
         }
 
