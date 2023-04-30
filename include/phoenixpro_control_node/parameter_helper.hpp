@@ -6,8 +6,6 @@
 #include <tuple>
 #include <boost/preprocessor.hpp>
 #include <boost/assign/list_of.hpp>
-#include <boost/range/adaptor/map.hpp>
-#include <boost/range/algorithm/copy.hpp>
 
 #define X_DEFINE_ENUM_WITH_STRING_CONVERSIONS_TOSTRING_CASE(r, data, elem)                              \
     case elem : return BOOST_PP_STRINGIZE(elem);
