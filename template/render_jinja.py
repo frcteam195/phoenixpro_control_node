@@ -52,6 +52,8 @@ for (k, v) in yaml_obj[node_name]["ros__parameters"].items():
             params[k] = type_map[7]
         elif all(isinstance(n, float) for n in v):
             params[k] = type_map[8]
+        elif any(isinstance(n, float) for n in v):
+            params[k] = type_map[8]
         elif all(isinstance(n, str) for n in v):
             params[k] = type_map[9]
         else:
