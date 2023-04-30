@@ -76,7 +76,8 @@ foreach(rdependency ${ros_find_package_list})
 endforeach()
 
 add_executable(${PROJECT_NAME} ${executable_sources})
-add_dependencies(${PROJECT_NAME} generate_jinja_sources make_gen_inc_folder make_gen_src_folder)
+add_dependencies(generate_jinja_sources make_gen_inc_folder make_gen_src_folder)
+add_dependencies(${PROJECT_NAME} generate_jinja_sources)
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
