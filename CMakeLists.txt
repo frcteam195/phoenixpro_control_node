@@ -42,7 +42,7 @@ add_custom_command(
   OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/generated/include/${PROJECT_NAME}/parameters.hpp ${CMAKE_CURRENT_SOURCE_DIR}/generated/src/parameters.cpp
   COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/template/render_jinja.py --header_output ${CMAKE_CURRENT_SOURCE_DIR}/generated/include/${PROJECT_NAME}/parameters.hpp --header_template ${CMAKE_CURRENT_SOURCE_DIR}/template/parameters.hpp.j2
   --src_output ${CMAKE_CURRENT_SOURCE_DIR}/generated/src/parameters.cpp --src_template ${CMAKE_CURRENT_SOURCE_DIR}/template/parameters.cpp.j2
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/template/render_jinja.py ${CMAKE_CURRENT_SOURCE_DIR}/template/parameters.hpp.j2 ${CMAKE_CURRENT_SOURCE_DIR}/template/parameters.cpp.j2
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../../../config/${PROJECT_NAME}.yaml ${CMAKE_CURRENT_SOURCE_DIR}/template/render_jinja.py ${CMAKE_CURRENT_SOURCE_DIR}/template/parameters.hpp.j2 ${CMAKE_CURRENT_SOURCE_DIR}/template/parameters.cpp.j2
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   COMMENT "Generating header ${CMAKE_CURRENT_SOURCE_DIR}/generated/include/${PROJECT_NAME}/${PROJECT_NAME}.hpp"
 )
@@ -57,7 +57,7 @@ add_custom_command(
 # add_custom_command(
 #   OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/generated/include/${PROJECT_NAME}/${PROJECT_NAME}.hpp ${CMAKE_CURRENT_BINARY_DIR}/__header.h
 #   COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/template/render_jinja.py --output ${CMAKE_CURRENT_SOURCE_DIR}/generated/include/${PROJECT_NAME}/${PROJECT_NAME}.hpp --template ${CMAKE_CURRENT_SOURCE_DIR}/template/${PROJECT_NAME}.hpp.j2
-#   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/template/render_jinja.py ${CMAKE_CURRENT_SOURCE_DIR}/template/${PROJECT_NAME}.hpp.j2
+#   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../../../config/${PROJECT_NAME}.yaml ${CMAKE_CURRENT_SOURCE_DIR}/template/render_jinja.py ${CMAKE_CURRENT_SOURCE_DIR}/template/${PROJECT_NAME}.hpp.j2
 #   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 #   COMMENT "Generating header ${CMAKE_CURRENT_SOURCE_DIR}/generated/include/${PROJECT_NAME}/${PROJECT_NAME}.hpp"
 # )
