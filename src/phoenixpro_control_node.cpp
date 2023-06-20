@@ -37,7 +37,7 @@ public:
         motor_status_publisher = this->create_publisher<ck_ros2_base_msgs_node::msg::MotorStatusArray>("/MotorStatus", 10);
         motor_control_subscriber = this->create_subscription<std_msgs::msg::String>("/MotorControl", 1, std::bind(&LocalNode::control_msg_callback, this, std::placeholders::_1));
 
-        m_pigeon2 = new hardware::Pigeon2(0, Parameters.canivore_name.as_string());
+        m_pigeon2 = new hardware::Pigeon2(0, Parameters.canivore_name);
         m_combined_pigeon2_status = new CombinedPigeon2Status(m_pigeon2, UPDATE_FREQUENCY);
         create_combined_wait_vector();
         
@@ -110,7 +110,7 @@ private:
     {
         if (!motor_map.count(id))
         {
-            motor_map[id] = new hardware::TalonFX(id, Parameters.canivore_name.as_string());
+            motor_map[id] = new hardware::TalonFX(id, Parameters.canivore_name);
         }
         {
             std::scoped_lock<std::recursive_mutex> lock(status_mutex);
@@ -159,7 +159,7 @@ private:
     {
         if (!cancoder_map.count(id))
         {
-            cancoder_map[id] = new hardware::CANcoder(id, Parameters.canivore_name.as_string());
+            cancoder_map[id] = new hardware::CANcoder(id, Parameters.canivore_name);
         }
         {
             std::scoped_lock<std::recursive_mutex> lock(status_mutex);
