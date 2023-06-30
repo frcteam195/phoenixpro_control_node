@@ -8,8 +8,24 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
+
 #include "ck_ros2_base_msgs_node/msg/motor_status.hpp"
 #include "ck_ros2_base_msgs_node/msg/motor_status_array.hpp"
+
+
+#include "ck_ros2_base_msgs_node/msg/motor_configuration.hpp"
+#include "ck_ros2_base_msgs_node/msg/motor_configuration_array.hpp"
+#include "ck_ros2_base_msgs_node/msg/motor_control.hpp"
+#include "ck_ros2_base_msgs_node/msg/motor_control_array.hpp"
+#include "ck_ros2_base_msgs_node/msg/motor_control_command_type.hpp"
+#include "ck_ros2_base_msgs_node/msg/motor_control_feed_forward_type.hpp"
+#include "ck_ros2_base_msgs_node/msg/motor_controller_type.hpp"
+#include "ck_ros2_base_msgs_node/msg/motor_limit_switch_normal_type.hpp"
+#include "ck_ros2_base_msgs_node/msg/motor_limit_switch_source_type.hpp"
+#include "ck_ros2_base_msgs_node/msg/motor_neutral_mode_type.hpp"
+
+
+
 
 #ifndef UNIT_LIB_DISABLE_FMT
     #define UNIT_LIB_DISABLE_FMT
