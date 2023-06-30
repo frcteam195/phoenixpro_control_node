@@ -11,8 +11,6 @@
 
 #include "ck_ros2_base_msgs_node/msg/motor_status.hpp"
 #include "ck_ros2_base_msgs_node/msg/motor_status_array.hpp"
-
-
 #include "ck_ros2_base_msgs_node/msg/motor_configuration.hpp"
 #include "ck_ros2_base_msgs_node/msg/motor_configuration_array.hpp"
 #include "ck_ros2_base_msgs_node/msg/motor_control.hpp"
@@ -24,8 +22,9 @@
 #include "ck_ros2_base_msgs_node/msg/motor_limit_switch_source_type.hpp"
 #include "ck_ros2_base_msgs_node/msg/motor_neutral_mode_type.hpp"
 
+#include "ck_utilities_ros2_node/node_handle.hpp"
 
-
+rclcpp::Node::SharedPtr node_handle;
 
 #ifndef UNIT_LIB_DISABLE_FMT
     #define UNIT_LIB_DISABLE_FMT
@@ -296,8 +295,8 @@ private:
 int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
-    auto node = std::make_shared<LocalNode>();
-    rclcpp::spin(node);
+    node_handle = std::make_shared<LocalNode>();
+    rclcpp::spin(node_handle);
     rclcpp::shutdown();
     return 0;
 }
