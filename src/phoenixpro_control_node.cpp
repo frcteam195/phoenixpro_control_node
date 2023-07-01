@@ -58,14 +58,11 @@ public:
         m_pigeon2 = new hardware::Pigeon2(0, Parameters.canivore_name);
         m_combined_pigeon2_status = new CombinedPigeon2Status(m_pigeon2, UPDATE_FREQUENCY);
         create_combined_wait_vector();
-        
-        create_motor(1);
-        create_motor(2);
 
-        create_cancoder(21);
-        create_cancoder(22);
-        create_cancoder(23);
-        create_cancoder(24);
+        // create_cancoder(21);
+        // create_cancoder(22);
+        // create_cancoder(23);
+        // create_cancoder(24);
 
         status_listener_thread = std::thread(std::bind(&LocalNode::status_receiver_thread, this));
     }
