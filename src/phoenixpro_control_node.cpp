@@ -20,8 +20,6 @@
 
 #include "ck_utilities_ros2_node/node_handle.hpp"
 
-rclcpp::Node::SharedPtr node_handle;
-
 #ifndef UNIT_LIB_DISABLE_FMT
     #define UNIT_LIB_DISABLE_FMT
 #endif
