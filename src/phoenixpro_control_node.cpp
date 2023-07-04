@@ -233,7 +233,7 @@ private:
 
             using ck_ros2_base_msgs_node::msg::MotorControlModeType;
             using ck_ros2_base_msgs_node::msg::MotorControlFeedForwardType;
-            switch(m.control_mode.control_mode)
+            switch(m.control_mode)
             {
                 case MotorControlModeType::DUTY_CYCLE:
                 {
@@ -252,7 +252,7 @@ private:
                 }
                 case MotorControlModeType::POSITION:
                 {
-                    switch (m.feed_forward_type.feed_forward_type)
+                    switch (m.feed_forward_type)
                     {
                         case MotorControlFeedForwardType::NONE:
                         {
@@ -284,7 +284,7 @@ private:
                 }
                 case MotorControlModeType::VELOCITY:
                 {
-                    switch (m.feed_forward_type.feed_forward_type)
+                    switch (m.feed_forward_type)
                     {
                         case MotorControlFeedForwardType::NONE:
                         {
@@ -316,7 +316,7 @@ private:
                 }
                 case MotorControlModeType::MOTION_MAGIC:
                 {
-                    switch (m.feed_forward_type.feed_forward_type)
+                    switch (m.feed_forward_type)
                     {
                         case MotorControlFeedForwardType::NONE:
                         {
