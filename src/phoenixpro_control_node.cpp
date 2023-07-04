@@ -17,8 +17,6 @@
 #include "ck_ros2_base_msgs_node/msg/motor_control_array.hpp"
 #include "ck_ros2_base_msgs_node/msg/motor_control_mode_type.hpp"
 #include "ck_ros2_base_msgs_node/msg/motor_control_feed_forward_type.hpp"
-#include "ck_ros2_base_msgs_node/msg/motor_limit_switch_normal_type.hpp"
-#include "ck_ros2_base_msgs_node/msg/motor_limit_switch_source_type.hpp"
 
 #include "ck_utilities_ros2_node/node_handle.hpp"
 
@@ -52,8 +50,8 @@ public:
     LocalNode() : ParameterizedNode(NODE_NAME)
     {
         motor_status_publisher = this->create_publisher<ck_ros2_base_msgs_node::msg::MotorStatusArray>("/MotorStatus", 10);
-        motor_control_subscriber = this->create_subscription<ck_ros2_base_msgs_node::msg::MotorControlArray>("/MotorControl", rclcpp::QoS(rclcpp::KeepLast(1)).best_effort().durability_volatile(), std::bind(&LocalNode::control_msg_callback, this, std::placeholders::_1));
-        motor_config_subscriber = this->create_subscription<ck_ros2_base_msgs_node::msg::MotorConfigurationArray>("/MotorConfiguration", rclcpp::QoS(rclcpp::KeepLast(1)).best_effort().durability_volatile(), std::bind(&LocalNode::config_msg_callback, this, std::placeholders::_1));
+        motor_control_subscriber = this->create_subscription<ck_ros2_base_msgs_node::msg::MotorControlArray>("/MotorControl", rclcpp::QoS(rclcpp::KeepLast(10)).best_effort().durability_volatile(), std::bind(&LocalNode::control_msg_callback, this, std::placeholders::_1));
+        motor_config_subscriber = this->create_subscription<ck_ros2_base_msgs_node::msg::MotorConfigurationArray>("/MotorConfiguration", rclcpp::QoS(rclcpp::KeepLast(10)).best_effort().durability_volatile(), std::bind(&LocalNode::config_msg_callback, this, std::placeholders::_1));
 
         m_pigeon2 = new hardware::Pigeon2(0, Parameters.canivore_name);
         m_combined_pigeon2_status = new CombinedPigeon2Status(m_pigeon2, UPDATE_FREQUENCY);
