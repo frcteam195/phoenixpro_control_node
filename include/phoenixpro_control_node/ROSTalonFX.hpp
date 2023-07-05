@@ -17,6 +17,7 @@ class ROSTalonFX
 public:
     ROSTalonFX(int motor_id, units::frequency::hertz_t update_frequency, std::string canbus_name)
     {
+        (void)update_frequency;
         motor = new hardware::TalonFX(motor_id, canbus_name);
         motor_status = new CombinedMotorStatus(motor, update_frequency);
         motor_configuration = new configs::TalonFXConfiguration();
@@ -52,5 +53,6 @@ public:
     hardware::TalonFX* motor = nullptr;
     CombinedMotorStatus* motor_status = nullptr;
     configs::TalonFXConfiguration* motor_configuration = nullptr;
+    configs::TalonFXConfiguration prev_motor_configuration;
     TalonFXControls* motor_control = nullptr;
 };

@@ -1,4 +1,5 @@
 #include "phoenixpro_control_node/phoenixpro_control_node.hpp"
+#ifndef HELLO_WORLD
 #include <cstdio>
 #include <string>
 #include <iostream>
@@ -8,6 +9,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
+#include "nav_msgs/msg/odometry.hpp"
 
 #include "ck_ros2_base_msgs_node/msg/motor_status.hpp"
 #include "ck_ros2_base_msgs_node/msg/motor_status_array.hpp"
@@ -18,7 +20,13 @@
 #include "ck_ros2_base_msgs_node/msg/motor_control_mode_type.hpp"
 #include "ck_ros2_base_msgs_node/msg/motor_control_feed_forward_type.hpp"
 
+#include "geometry_msgs/msg/quaternion.hpp"
+
 #include "ck_utilities_ros2_node/node_handle.hpp"
+#include "ck_utilities_ros2_node/geometry/geometry.hpp"
+#include "ck_utilities_ros2_node/geometry/geometry_ros_helpers.hpp"
+#include "ck_utilities_ros2_node/CKMath.hpp"
+#include "ck_utilities_ros2_node/CKTimer.hpp"
 
 #ifndef UNIT_LIB_DISABLE_FMT
     #define UNIT_LIB_DISABLE_FMT
@@ -40,19 +48,18 @@
 
 using namespace ctre::phoenixpro;
 
-static constexpr units::frequency::hertz_t UPDATE_FREQUENCY = 100_Hz;
-
 class LocalNode : public ParameterizedNode
 {
 public:
     LocalNode() : ParameterizedNode(NODE_NAME)
     {
+        imu_publisher = this->create_publisher<nav_msgs::msg::Odometry>("/RobotIMU", 10);
         motor_status_publisher = this->create_publisher<ck_ros2_base_msgs_node::msg::MotorStatusArray>("/MotorStatus", 10);
         motor_control_subscriber = this->create_subscription<ck_ros2_base_msgs_node::msg::MotorControlArray>("/MotorControl", rclcpp::QoS(rclcpp::KeepLast(10)).best_effort().durability_volatile(), std::bind(&LocalNode::control_msg_callback, this, std::placeholders::_1));
         motor_config_subscriber = this->create_subscription<ck_ros2_base_msgs_node::msg::MotorConfigurationArray>("/MotorConfiguration", rclcpp::QoS(rclcpp::KeepLast(10)).best_effort().durability_volatile(), std::bind(&LocalNode::config_msg_callback, this, std::placeholders::_1));
 
         m_pigeon2 = new hardware::Pigeon2(0, Parameters.canivore_name);
-        m_combined_pigeon2_status = new CombinedPigeon2Status(m_pigeon2, UPDATE_FREQUENCY);
+        m_combined_pigeon2_status = new CombinedPigeon2Status(m_pigeon2, units::frequency::hertz_t(Parameters.sensor_update_frequency_hz));
         create_combined_wait_vector();
 
         // create_cancoder(21);
@@ -103,6 +110,7 @@ private:
 
     std::recursive_mutex status_mutex;
 
+    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr imu_publisher;
     rclcpp::Publisher<ck_ros2_base_msgs_node::msg::MotorStatusArray>::SharedPtr motor_status_publisher;
     rclcpp::Subscription<ck_ros2_base_msgs_node::msg::MotorControlArray>::SharedPtr motor_control_subscriber;
     rclcpp::Subscription<ck_ros2_base_msgs_node::msg::MotorConfigurationArray>::SharedPtr motor_config_subscriber;
@@ -113,7 +121,7 @@ private:
     {
         if (!motor_map.count(id))
         {
-            motor_map[id] = new ROSTalonFX(id, UPDATE_FREQUENCY, Parameters.canivore_name);
+            motor_map[id] = new ROSTalonFX(id, units::frequency::hertz_t(Parameters.sensor_update_frequency_hz), Parameters.canivore_name);
         }
 
         create_combined_wait_vector();
@@ -148,7 +156,7 @@ private:
             std::scoped_lock<std::recursive_mutex> lock(status_mutex);
             if (!cancoder_status_map.count(id))
             {
-                cancoder_status_map[id] = new CombinedCANcoderStatus(cancoder_map[id], UPDATE_FREQUENCY);
+                cancoder_status_map[id] = new CombinedCANcoderStatus(cancoder_map[id], units::frequency::hertz_t(Parameters.sensor_update_frequency_hz));
             }
         }
 
@@ -383,8 +391,9 @@ private:
                 motor_map[m.id]->motor_is_follower = true;
                 motor_map[m.id]->master_motor_id = m.master_id;
             }
-            
+
             auto config = motor_map[m.id]->motor_configuration;
+            
             config->MotorOutput.Inverted = m.invert ? signals::InvertedValue::Clockwise_Positive : signals::InvertedValue::CounterClockwise_Positive;
             config->MotorOutput.NeutralMode = m.brake_neutral ? signals::NeutralModeValue::Brake : signals::NeutralModeValue::Coast;
             
@@ -446,7 +455,13 @@ private:
             config->MotionMagic.MotionMagicCruiseVelocity = m.motion_magic_cruise_velocity;
             config->MotionMagic.MotionMagicJerk = m.motion_magic_jerk;
 
+            if ((*config).Serialize() == motor_map[m.id]->prev_motor_configuration.Serialize())
+            {
+                continue;
+            }
+
             motor_map[m.id]->motor->GetConfigurator().Apply(*config);
+            motor_map[m.id]->prev_motor_configuration = (*config);
         }
     }
 
@@ -454,8 +469,11 @@ private:
     {
         rclcpp::Rate default_rate(std::chrono::milliseconds(10));
         std::vector<BaseStatusSignalValue*> local_combined_status_wait_vector;
+        ck::ElapsedTimer timer;
         while (rclcpp::ok())
         {
+            timer.start();
+
             {
                 std::scoped_lock<std::recursive_mutex> lock(status_mutex);
                 local_combined_status_wait_vector = combined_status_signal_vector;
@@ -464,32 +482,60 @@ private:
                 for(auto p : motor_map)
                 {
                     CombinedMotorStatus* motor_status_tfx = p.second->motor_status;
-                    ck_ros2_base_msgs_node::msg::MotorStatus m;
-                    m.id = motor_status_tfx->get_status(MotorStatusType::DEVICE_ID);
-                    m.sensor_position = motor_status_tfx->get_status(MotorStatusType::POSITION);
-                    m.sensor_velocity = motor_status_tfx->get_status(MotorStatusType::VELOCITY);
-                    m.bus_voltage = motor_status_tfx->get_status(MotorStatusType::SUPPLY_VOLTAGE);
-                    m.bus_current = motor_status_tfx->get_status(MotorStatusType::SUPPLY_CURRENT);
-                    m.stator_current = motor_status_tfx->get_status(MotorStatusType::STATOR_CURRENT);
-                    m.forward_limit_closed = motor_status_tfx->get_status(MotorStatusType::FORWARD_LIMIT);
-                    m.reverse_limit_closed = motor_status_tfx->get_status(MotorStatusType::REVERSE_LIMIT);
-                    m.control_mode = motor_status_tfx->get_status(MotorStatusType::CONTROL_MODE);
-                    m.commanded_output = motor_status_tfx->get_status(MotorStatusType::CLOSED_LOOP_TARGET);
-                    m.raw_output_percent = motor_status_tfx->get_status(MotorStatusType::OUTPUT_DUTY_CYCLE);
-                    motor_status_msg.motors.push_back(m);
+                    if (motor_status_tfx)
+                    {
+                        ck_ros2_base_msgs_node::msg::MotorStatus m;
+                        m.id = motor_status_tfx->get_status(MotorStatusType::DEVICE_ID);
+                        m.sensor_position = motor_status_tfx->get_status(MotorStatusType::POSITION);
+                        m.sensor_velocity = motor_status_tfx->get_status(MotorStatusType::VELOCITY);
+                        m.bus_voltage = motor_status_tfx->get_status(MotorStatusType::SUPPLY_VOLTAGE);
+                        m.bus_current = motor_status_tfx->get_status(MotorStatusType::SUPPLY_CURRENT);
+                        m.stator_current = motor_status_tfx->get_status(MotorStatusType::STATOR_CURRENT);
+                        m.forward_limit_closed = motor_status_tfx->get_status(MotorStatusType::FORWARD_LIMIT);
+                        m.reverse_limit_closed = motor_status_tfx->get_status(MotorStatusType::REVERSE_LIMIT);
+                        m.control_mode = motor_status_tfx->get_status(MotorStatusType::CONTROL_MODE);
+                        m.commanded_output = motor_status_tfx->get_status(MotorStatusType::CLOSED_LOOP_TARGET);
+                        m.raw_output_percent = motor_status_tfx->get_status(MotorStatusType::OUTPUT_DUTY_CYCLE);
+                        motor_status_msg.motors.push_back(m);
+                    }
                 }
-
                 motor_status_publisher->publish(motor_status_msg);
+                RCLCPP_INFO(this->get_logger(), "Time elapsed for motor publish: %lf", timer.hasElapsed());
+
+
+                nav_msgs::msg::Odometry odometry_data;
+                {
+                    odometry_data.header.stamp = this->get_clock()->now();
+                    odometry_data.header.frame_id = "odom";
+                    odometry_data.child_frame_id = "base_link";
+
+                    geometry::Pose empty_pose;
+                    odometry_data.pose.pose = geometry::to_msg(empty_pose);
+                    geometry::Covariance covariance;
+                    covariance.yaw_var(ck::math::deg2rad(3.0));
+                    odometry_data.pose.covariance = geometry::to_msg(covariance);
+
+                    geometry::Rotation rotation(Eigen::Vector3f {(float)(m_combined_pigeon2_status->get_status(Pigeon2StatusType::YAW)),
+                                                                 (float)(m_combined_pigeon2_status->get_status(Pigeon2StatusType::PITCH)),
+                                                                 (float)(m_combined_pigeon2_status->get_status(Pigeon2StatusType::ROLL))});
+
+                    geometry::Pose imu_orientation;
+                    imu_orientation.orientation = rotation;
+                    odometry_data.pose.pose = geometry::to_msg(imu_orientation);
+                }
+                imu_publisher->publish(odometry_data);
+                RCLCPP_INFO(this->get_logger(), "Time elapsed after imu publish: %lf", timer.hasElapsed());
             }
 
             if (local_combined_status_wait_vector.size() > 0)
             {
-                BaseStatusSignalValue::WaitForAll(15_ms, local_combined_status_wait_vector);
+                BaseStatusSignalValue::WaitForAll(1_s, local_combined_status_wait_vector);
             }
             else
             {
                 default_rate.sleep();
             }
+            RCLCPP_INFO(this->get_logger(), "Time elapsed after wait for status: %lf", timer.hasElapsed());
         }
     }
 
@@ -498,8 +544,9 @@ private:
 int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
-    node_handle = std::make_shared<LocalNode>();
-    rclcpp::spin(node_handle);
+    auto node = std::make_shared<LocalNode>();
+    rclcpp::spin(node);
     rclcpp::shutdown();
     return 0;
 }
+#endif
